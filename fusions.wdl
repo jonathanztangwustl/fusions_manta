@@ -1,6 +1,6 @@
 version 1.0
 
-import "mutect2/mutect2.wdl" as m2
+import "mutect2.wdl" as m2
 
 # WDL tasks and workflow for investigating CH fusions with Terra
 # Also runs mutect2 and deletion detection to search for DNMT3A mutations
