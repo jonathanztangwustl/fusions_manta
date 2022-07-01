@@ -15,7 +15,9 @@ task samtools_fusions {
     input {
         File fusions_bed
         File full_wgs
+        File full_wgs_idx
         File ref_fa
+        File ref_fa_fai
     }
     Int cores = 1
     Float wgs_size = size([full_wgs], "GB")
@@ -29,12 +31,11 @@ task samtools_fusions {
         bootDiskSizeGb: runtime_size
     }
     command <<<
-        set -o pipefile
+        set -o pipefail
         set -o errexit
-        ln -s ~{fusions_bed} fusions.bed
         ln -s ~{full_wgs} full.wgs
-        ln -s ~{ref_fa} ref.fa
-        samtools view -b -L fusions.bed -T ref.fa -o fusions.bam full.wgs
+        ln -s ~{full_wgs_idx} full.wgs.idx
+        samtools view -b -L ~{fusions_bed} -T ~{ref_fa} -t ~{ref_fa_fai} -o fusions.bam full.wgs
     >>>
     output {
         File fusions_bam = "fusions.bam"
@@ -46,7 +47,9 @@ task samtools_mutect {
     input {
         File dnmt3a_bed
         File full_wgs
+        File full_wgs_idx
         File ref_fa
+        File ref_fa_fai
     }
     Int cores = 1
     Float bam_size = size([full_wgs], "GB")
@@ -60,11 +63,13 @@ task samtools_mutect {
         bootDiskSizeGb: runtime_size
     }
     command <<<
-        set -o pipefile
+        set -o pipefail
         set -o errexit
         ln -s ~{dnmt3a_bed} dnmt3a.bed
         ln -s ~{full_wgs} full.wgs
+        ln -s ~{full_wgs_idx} full.wgs.idx
         ln -s ~{ref_fa} ref.fa
+        ln -s ~{ref_fa_fai} ref.fa.fai
         samtools view -b -L dnmt3a.bed -T ref.fa -o dnmt3a.bam full.wgs
         samtools index -b dnmt3a.bam
     >>>
@@ -77,8 +82,10 @@ task samtools_mutect {
 # Fusions.py task
 task fusions {
     input {
+        File fusions_py
         File fusions_bam
         File ROIs
+        File gene_ref_bed
     }
     Int cores = 4
     Float bam_size = size([fusions_bam], "GB")
@@ -93,9 +100,10 @@ task fusions {
     }
     command <<<
         python \
-        /storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/fusions.py \
+        ~{fusions_py} \
         ~{fusions_bam} \
         ~{ROIs} \
+        ~{gene_ref_bed} \
         fusions_out.txt
     >>>
     output {
@@ -110,13 +118,15 @@ workflow runfusions {
     input {
         File wf_fusions_bed
         File wf_full_wgs
+        File wf_full_wgs_idx
+        File wf_fusions_py
         File wf_ROIs
         File wf_dnmt3a_bed
+        File wf_gene_ref_bed
         File wf_ref_fa
+        File wf_ref_fa_fai
+        File wf_ref_dict
         File Mutect2_intervals
-        File Mutect2_ref_fasta
-        File Mutect2_ref_fai
-        File Mutect2_ref_dict
         Int Mutect2_scatter_count
         String Mutect2_gatk_docker
         File Mutect2_gatk_override
@@ -125,25 +135,31 @@ workflow runfusions {
         input:
         fusions_bed=wf_fusions_bed,
         full_wgs=wf_full_wgs,
-        ref_fa=wf_ref_fa
+        full_wgs_idx=wf_full_wgs_idx,
+        ref_fa=wf_ref_fa,
+        ref_fa_fai=wf_ref_fa_fai
     }
     call fusions {
         input:
+        fusions_py=wf_fusions_py,
         fusions_bam=samtools_fusions.fusions_bam,
-        ROIs=wf_ROIs
+        ROIs=wf_ROIs,
+        gene_ref_bed=wf_gene_ref_bed
     }
     call samtools_mutect {
         input:
         dnmt3a_bed=wf_dnmt3a_bed,
         full_wgs=wf_full_wgs,
-        ref_fa=wf_ref_fa
+        full_wgs_idx=wf_full_wgs_idx,
+        ref_fa=wf_ref_fa,
+        ref_fa_fai=wf_ref_fa_fai
     }
     call m2.Mutect2{
         input:
         intervals=Mutect2_intervals,
-        ref_fasta=Mutect2_ref_fasta,
-        ref_fai=Mutect2_ref_fai,
-        ref_dict=Mutect2_ref_dict,
+        ref_fasta=wf_ref_fa,
+        ref_fai=wf_ref_fa_fai,
+        ref_dict=wf_ref_dict,
         tumor_reads=samtools_mutect.dnmt3a_bam,
         tumor_reads_index=samtools_mutect.dnmt3a_bai,
         scatter_count=Mutect2_scatter_count,
