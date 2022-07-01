@@ -1,8 +1,8 @@
 version: 1.2
 workflows:
   - subclass: WDL
-  primaryDescriptorPath: /fusions_manta/fusions.wdl
-  testParameterFiles: /fusions_manta/fusion_inputs.json
+  primaryDescriptorPath: /fusions.wdl
+  testParameterFiles: /fusion_inputs.json
   authors:
     - name: Jonathan Tang
     - email: jonathanztang@wustl.edu
