@@ -1,0 +1,14 @@
+{
+  "runfusions.wf_ROIs": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/ROIs.txt",
+  "runfusions.wf_full_wgs": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/dnmt3a_pos.cram",
+  "runfusions.wf_fusions_bed": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/regions.bed",
+  "runfusions.wf_dnmt3a_bed": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/mutect2/dnmt3a.bed",
+  "runfusions.wf_ref_fa": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/mutect2/references/all_sequences.fa",
+  "runfusions.Mutect2_intervals": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/mutect2/dnmt3a.interval_list",
+  "runfusions.Mutect2_ref_fasta": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/mutect2/references/all_sequences.fa",
+  "runfusions.Mutect2_ref_fai": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/mutect2/references/all_sequences.fa.fai",
+  "runfusions.Mutect2_ref_dict": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/mutect2/references/all_sequences.dict",
+  "runfusions.Mutect2_scatter_count": "10",
+  "runfusions.Mutect2_gatk_docker": "broadinstitute/gatk",
+  "runfusions.Mutect2_gatk_override": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/mutect2/gatk4261local.jar"
+}
