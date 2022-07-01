@@ -65,12 +65,9 @@ task samtools_mutect {
     command <<<
         set -o pipefail
         set -o errexit
-        ln -s ~{dnmt3a_bed} dnmt3a.bed
         ln -s ~{full_wgs} full.wgs
         ln -s ~{full_wgs_idx} full.wgs.idx
-        ln -s ~{ref_fa} ref.fa
-        ln -s ~{ref_fa_fai} ref.fa.fai
-        samtools view -b -L dnmt3a.bed -T ref.fa -o dnmt3a.bam full.wgs
+        samtools view -b -L ~{dnmt3a_bed} -T ~{ref_fa} -t ~{ref_fa_fai} -o dnmt3a.bam full.wgs
         samtools index -b dnmt3a.bam
     >>>
     output {

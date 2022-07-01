@@ -1,8 +1,8 @@
 {
   "runfusions.wf_fusions_bed": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/regions.bed",
   "runfusions.wf_full_wgs": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/dnmt3a_pos.cram",
-  "runfusions.wf_full_wgs_idx": "storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/testdir/dnmt3a_pos.cram.crai",
-  "runfusions.wf_fusions_py": "storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/fusions.py",
+  "runfusions.wf_full_wgs_idx": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/testdir/dnmt3a_pos.cram.crai",
+  "runfusions.wf_fusions_py": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/fusions.py",
   "runfusions.wf_ROIs": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/ROIs.txt",
   "runfusions.wf_dnmt3a_bed": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/mutect2/dnmt3a.bed",
   "runfusions.wf_gene_ref_bed": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/gene_reference.bed",
