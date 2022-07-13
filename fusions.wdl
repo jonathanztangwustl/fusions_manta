@@ -8,7 +8,8 @@ import "mutect2.wdl" as m2
 
 # TODO items
 # TODO: Complete CH Fusion workflow - complete
-# TODO: Add DNMT3A mutation detection/Mutect2 - in progress
+# TODO: Add DNMT3A mutation detection/Mutect2 - complete
+# TODO: Code review/tidy - in progress
 
 # Samtools task for fusions.py
 task samtools_fusions {
@@ -108,7 +109,67 @@ task fusions {
     }
 }
 
-# TODO: Deletion detection task
+# CNV - Indexcov
+task indexcov {
+    input {
+        File full_wgs_idx
+        File ref_fa_fai
+    }
+    Int cores = 1
+    Float idx_size = size([full_wgs_idx], "GB")
+    Int runtime_size = 4 + round(idx_size)
+    runtime {
+        memory: "4GB"
+        cpu: cores
+        preemptible: 1
+        docker: "quay.io/biocontainers/goleft:0.2.4--0"
+        disks: "local-disk ~{runtime_size} SSD"
+        bootDiskSizeGb: runtime_size
+    }
+    command <<<
+        goleft indexcov --extranormalize -d indexcov_out --fai ~{ref_fa_fai} ~{full_wgs_idx}
+        tar -cvf indexcov.tar indexcov_out/
+        gzip indexcov.tar
+    >>>
+    output {
+        File indexcov_out = "indexcov.tar.gz"
+    }
+}
+
+# CNV - mosdepth
+task mosdepth {
+    input {
+        File ref_fa
+        File ref_fa_fai
+        File full_wgs
+        File full_wgs_idx
+        File dnmt3a_mosdepth
+    }
+    Int cores = 1
+    Float bam_size = size([full_wgs], "GB")
+    Int runtime_size = 4 + round(bam_size)
+    runtime {
+        memory: "8GB"
+        cpu: cores
+        preemptible: 1
+        docker: "quay.io/biocontainers/mosdepth:0.2.5--hb763d49_0"
+        disks: "local-disk ~{runtime_size} SSD"
+        bootDiskSizeGb: runtime_size
+    }
+    command <<<
+        ln -s ~{full_wgs} full.cram
+        ln -s ~{full_wgs_idx} full.cram.crai
+        ln -s ~{ref_fa} ref.fa
+        ln -s ~{ref_fa_fai} ref.fa.fai
+        mkdir mosdepth
+        mosdepth -b ~{dnmt3a_mosdepth} -n -f ref.fa mosdepth/cnv full.cram
+        tar -cvf mosdepth.tar mosdepth/
+        gzip mosdepth.tar
+    >>>
+    output {
+        File mosdepth_out = "mosdepth.tar.gz"
+    }
+}
 
 # Workflow to call samtools_fusions and fusions
 workflow runfusions {
@@ -119,6 +180,7 @@ workflow runfusions {
         File wf_fusions_py
         File wf_ROIs
         File wf_dnmt3a_bed
+        File wf_dnmt3a_mosdepth
         File wf_gene_ref_bed
         File wf_ref_fa
         File wf_ref_fa_fai
@@ -127,6 +189,20 @@ workflow runfusions {
         Int Mutect2_scatter_count
         String Mutect2_gatk_docker
         File Mutect2_gatk_override
+        File wf_dnmt3a_mosdepth
+    }
+    call indexcov {
+        input:
+        full_wgs_idx=wf_full_wgs_idx,
+        ref_fa_fai=wf_ref_fa_fai
+    }
+    call mosdepth {
+        input:
+        ref_fa=wf_ref_fa,
+        ref_fa_fai=wf_ref_fa_fai,
+        full_wgs=wf_full_wgs,
+        full_wgs_idx=wf_full_wgs_idx,
+        dnmt3a_mosdepth=wf_dnmt3a_mosdepth
     }
     call samtools_fusions {
         input:
@@ -179,5 +255,7 @@ workflow runfusions {
         File? bamout_index = Mutect2.bamout_index
         File? maf_segments = Mutect2.maf_segments
         File? read_orientation_model_params = Mutect2.read_orientation_model_params
+        File indexcov_out = indexcov.indexcov_out
+        File mosdepth_out = mosdepth.mosdepth_out
     }
 }
