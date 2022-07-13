@@ -4,12 +4,13 @@ import "mutect2.wdl" as m2
 
 # WDL tasks and workflow for investigating CH fusions with Terra
 # Also runs mutect2 and deletion detection to search for DNMT3A mutations
-#   Jonathan Tang, jonathanztang@wustl.edu, (610) 639-0698
 
 # TODO items
 # TODO: Complete CH Fusion workflow - complete
 # TODO: Add DNMT3A mutation detection/Mutect2 - complete
 # TODO: Code review/tidy - in progress
+# TODO: Tweak samtools flags; tweak samtools for performance; tweak filenames - in progress
+# TODO: New name for the workflow
 
 # Samtools task for fusions.py
 task samtools_fusions {

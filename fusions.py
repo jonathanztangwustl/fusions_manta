@@ -1,8 +1,6 @@
 ################################################################################################
 ## Filtering of set fusions in BAM file                                                        #
 ## Developed and maintained by: Jonathan Tang                                                  #
-## Email: jonathanztang@wustl.edu                                                              #
-## Phone: +1-6106390698                                                                        #
 ## Organization: Washington University in St. Louis                                            #
 ## Arguments: 1. BAM, CRAM, or SAM input, 2 List of fusions of interest,                       #
 ##      3. Reference BED file, 4. Output file path                                             #
@@ -35,14 +33,6 @@ def roi_lookup(roi, ref):
         raise ValueError("Genes not identified in reference file")
     else:
         return goi
-
-# For testing
-#   Generally, bam_ will be raw data, roi_ will be regions of interest/targets,
-#   ref_ will be the reference file with genes and locations, and out_ will be output.
-bam_path = 'fusions.bam'
-roi_path = '/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/ROIs.txt'
-ref_path = '/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/gene_reference.bed'
-out_path = '/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/output.txt'
 
 # Collects file paths as passed by arguments
 if len(sys.argv) == 5:
@@ -84,6 +74,7 @@ rois.strand_y = rois.strand_y.str.replace('-', '1')
 # Open BAM and read data
 #   Uses pysam to call samtools view on bam, then parses \n and \t to dataframe.
 #   Renames columns, removes 'None' lines, fixes data types.
+# TODO: Investigate pysam to pull tag data
 bam_cols = [
     'qname',
     'flag',
@@ -112,6 +103,7 @@ bam = pysam.view(bam_path)
 bam_list = bam.split('\n')
 bam = pd.DataFrame([line.split('\t') for line in bam_list])
 bam.set_axis(1, bam_cols[0:len(bam.columns)], inplace = True)
+# TODO: Use samtools to drop these
 bam.dropna(subset = ['pos', 'pnext'], inplace = True)
 bam.pos = pd.to_numeric(bam.pos)
 bam.pnext = pd.to_numeric(bam.pnext)
@@ -139,7 +131,7 @@ bam['strand2'] = binflags[0].str[8]
 #   Pulls values in 'tag' columns that start with 'SA' and then realigns them to a column.
 #   Searches all tag columns, because tags aren't constant. Switches to series for update().
 tag_col_names = [col for col in bam if col.startswith('tag')]
-tag_cols = bam[tag_col_names].fillna('empty')
+tag_cols = bam[tag_col_names].fillna('NA')
 supp_align_filter = tag_cols[tag_cols.apply(lambda col: col.str.startswith('SA'), axis = 1)]
 supp_align_raw = supp_align_filter.tag1
 for tag in tag_col_names[1:]:
@@ -202,7 +194,7 @@ for fusion in rois.iterrows():
     bam_fusion = bam_fusion.assign(gene2 = fusion[1].gene_y)
     out = pd.concat([out, bam_fusion])
 
-out = out.fillna(value = 'empty')
+out = out.fillna(value = 'NA')
 out['strand1'] = pd.to_numeric(out.strand1)
 out['strand2'] = pd.to_numeric(out.strand2)
 out['strand1_exp'] = pd.to_numeric(out.strand1_exp)
@@ -211,7 +203,7 @@ out['strand2_exp'] = pd.to_numeric(out.strand2_exp)
 # Pair orientation filter
 #   Checks orientations against expected strand directions. Supplementary alignments (flag >= 2048)
 #   are checked for same or complementary directions and pairs (flag < 2048) are checked for
-#   discordant directions. None or '' values are replaced with 'empty' for clean awk later.
+#   discordant directions. None or '' values are replaced with 'NA' for clean awk later.
 pairs = out[(out.flag < 2048)]
 pairs_actual = (pairs.strand1 + pairs.strand2) % 2
 pairs_exp = (pairs.strand1_exp + pairs.strand2_exp) % 2
@@ -223,7 +215,7 @@ supps_exp = (supps.strand1_exp + supps.strand2_exp) % 2
 supps_keep = (supps_actual == supps_exp)
 
 out_filtered = pd.concat([pairs[pairs_keep], supps[supps_keep]])
-out_filtered = out_filtered.fillna(value = 'empty').replace('', 'empty').sort_values('qname').reset_index(drop = True)
+out_filtered = out_filtered.fillna(value = 'NA').replace('', 'NA').sort_values('qname').reset_index(drop = True)
 
 # Filters results based on mate MAPQ
 #   Works in the same way as the SA filter, where all columns are searched for 'MQ' and then updated into

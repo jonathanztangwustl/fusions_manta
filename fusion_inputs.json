@@ -1,17 +1,17 @@
 {
-  "runfusions.wf_fusions_bed": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/for_git/fusions_mutect/regions.bed",
+  "runfusions.wf_fusions_bed": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/for_git/data_inputs/regions.bed",
   "runfusions.wf_full_wgs": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/testing/tumor.cram",
   "runfusions.wf_full_wgs_idx": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/testing/tumor.cram.crai",
   "runfusions.wf_fusions_py": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/for_git/fusions_mutect/fusions.py",
-  "runfusions.wf_ROIs": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/for_git/fusions_mutect/ROIs.txt",
-  "runfusions.wf_dnmt3a_bed": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/for_git/fusions_mutect/dnmt3a_exons.bed",
-  "runfusions.wf_gene_ref_bed": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/for_git/fusions_mutect/gene_reference.bed",
+  "runfusions.wf_ROIs": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/for_git/data_inputs/ROIs.txt",
+  "runfusions.wf_dnmt3a_bed": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/for_git/data_inputs/dnmt3a_exons.bed",
+  "runfusions.wf_gene_ref_bed": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/for_git/data_inputs/gene_reference.bed",
   "runfusions.wf_ref_fa": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/mutect2/references/all_sequences.fa",
   "runfusions.wf_ref_fa_fai": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/mutect2/references/all_sequences.fa.fai",
   "runfusions.wf_ref_dict": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/mutect2/references/all_sequences.dict",
-  "runfusions.Mutect2_intervals": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/for_git/fusions_mutect/dnmt3a_exons.interval_list",
+  "runfusions.Mutect2_intervals": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/for_git/data_inputs/dnmt3a_exons.interval_list",
   "runfusions.Mutect2_scatter_count": "10",
   "runfusions.Mutect2_gatk_docker": "broadinstitute/gatk",
-  "runfusions.Mutect2_gatk_override": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/for_git/fusions_mutect/gatk4261local.jar",
-  "runfusions.wf_dnmt3a_mosdepth": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/for_git/fusions_mutect/dnmt3a_mosdepth.bed"
+  "runfusions.Mutect2_gatk_override": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/mutect2/gatk4261local.jar",
+  "runfusions.wf_dnmt3a_mosdepth": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/for_git/data_inputs/dnmt3a_mosdepth.bed"
 }
