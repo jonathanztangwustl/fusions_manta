@@ -34,6 +34,82 @@ def roi_lookup(roi, ref):
     else:
         return goi
 
+#   Load BAM
+#       Assigns pysam AlignmentFile, creates columns, and iterates through pysam AlignmentFile
+#           while writing SA and MQ tags to a column specifically. Includes all tags in tags column
+#           in case they are needed in the future.
+#       Inputs:
+#           bam_path: path to BAM file
+#       Outputs:
+#           dataframe with columns:
+#               qname: query name
+#               flag: read flags
+#               rname: chromosome of read
+#               pos: location of read
+#               mapq: mapping quality of read
+#               cigar: cigar of read
+#               rnext: chromosome of mate
+#               pnext: location of mate
+#               tlen: length of transcript
+#               seq: sequence of read
+#               qual: quality score
+#               sa: supplementary alignments
+#               mateq: mate MAPQ
+#               tags: all tags
+def load_bam(bam_path):
+    bam = pysam.AlignmentFile(bam_path)
+    qname = []
+    flag = []
+    rname = []
+    pos = []
+    mapq = []
+    cigar = []
+    rnext = []
+    pnext = []
+    tlen = []
+    seq = []
+    qual = []
+    sa = []
+    mateq = []
+    all_tags = []
+    for read in bam:
+        qname.append(read.query_name)
+        flag.append(read.flag)
+        rname.append(read.reference_id)
+        pos.append(read.pos)
+        mapq.append(read.mapping_quality)
+        cigar.append(read.cigarstring)
+        rnext.append(read.next_reference_id)
+        pnext.append(read.next_reference_start)
+        tlen.append(read.template_length)
+        seq.append(read.query_sequence)
+        qual.append(read.query_name)
+        if (read.has_tag('SA')):
+            sa.append(read.get_tag('SA'))
+        else:
+            sa.append('NA')
+        if (read.has_tag('MQ')):
+            mateq.append(read.get_tag('MQ'))
+        else:
+            mateq.append('NA')
+        all_tags.append(read.get_tags())
+    return(pd.DataFrame({
+        'qname': qname,
+        'flag': flag,
+        'rname': rname,
+        'pos': pos,
+        'mapq': mapq,
+        'cigar': cigar,
+        'rnext': rnext,
+        'pnext': pnext,
+        'tlen': tlen,
+        'seq': seq,
+        'qual': qual,
+        'sa': sa,
+        'mateq': mateq,
+        'tags': all_tags
+    }))
+
 # Collects file paths as passed by arguments
 if len(sys.argv) == 5:
     bam_path = sys.argv[1]
@@ -71,43 +147,8 @@ rois.strand_x = rois.strand_x.str.replace('-', '1')
 rois.strand_y = rois.strand_y.str.replace('+', '0')
 rois.strand_y = rois.strand_y.str.replace('-', '1')
 
-# Open BAM and read data
-#   Uses pysam to call samtools view on bam, then parses \n and \t to dataframe.
-#   Renames columns, removes 'None' lines, fixes data types.
-# TODO: Investigate pysam to pull tag data
-bam_cols = [
-    'qname',
-    'flag',
-    'rname',
-    'pos',
-    'mapq',
-    'cigar',
-    'rnext',
-    'pnext',
-    'tlen',
-    'seq',
-    'qual',
-    'tag1',
-    'tag2',
-    'tag3',
-    'tag4',
-    'tag5',
-    'tag6',
-    'tag7',
-    'tag8',
-    'tag9',
-    'tag10'
-]
-
-bam = pysam.view(bam_path)
-bam_list = bam.split('\n')
-bam = pd.DataFrame([line.split('\t') for line in bam_list])
-bam.set_axis(1, bam_cols[0:len(bam.columns)], inplace = True)
-# TODO: Use samtools to drop these
-bam.dropna(subset = ['pos', 'pnext'], inplace = True)
-bam.pos = pd.to_numeric(bam.pos)
-bam.pnext = pd.to_numeric(bam.pnext)
-bam.flag = pd.to_numeric(bam.flag)
+# Load BAM
+bam = load_bam(bam_path)
 
 # Filter readthroughs
 #   Removes readthroughs within 1 Mb by filtering out results with an rnext of '=' (same
@@ -128,19 +169,9 @@ bam['strand1'] = binflags[0].str[7]
 bam['strand2'] = binflags[0].str[8]
 
 # Supplemental alignments
-#   Pulls values in 'tag' columns that start with 'SA' and then realigns them to a column.
-#   Searches all tag columns, because tags aren't constant. Switches to series for update().
-tag_col_names = [col for col in bam if col.startswith('tag')]
-tag_cols = bam[tag_col_names].fillna('NA')
-supp_align_filter = tag_cols[tag_cols.apply(lambda col: col.str.startswith('SA'), axis = 1)]
-supp_align_raw = supp_align_filter.tag1
-for tag in tag_col_names[1:]:
-    supp_align_raw.update((supp_align_filter[[tag]]).squeeze())
-
-# Supplemental alignments - explode
-#   Removes SA tag, splits to list, returns to bam, explodes list to
-#   rows so each SA has its own row and each main alignment has a row with '' in tag3.
-supp_align_split = supp_align_raw.str.replace('SA:Z:', '').str.split(';')
+#   Splits sa column to list, returns to the bam, and explodes the list so that each
+#   supplementary alignment has its own row and each main alignment has a row with ''
+supp_align_split = bam.sa.str.split(';')
 bam.loc[supp_align_split.index, 'sa'] = supp_align_split
 bam = bam.explode('sa').fillna('')
 bam.reset_index(drop = True, inplace = True)
@@ -167,7 +198,8 @@ bam.mapq = pd.to_numeric(bam.mapq)
 #   adds columns with expected strand orientation, then concats them to dataframe out.
 #   Note: expected strand orientation is for the fusion gene pairing, and is not accurate
 #   to the gene itself, e.g. if GENE1-GENE2 is +/- but is read as GENE2-GENE1, it will still
-#   be labeled as +/-. This shouldn't affect pair orientation logic though.
+#   be labeled as +/-. This shouldn't affect pair orientation logic though. Also note that MAPQ
+#   filtering is performed to exclude supplementary alignments with MAPQs below threshold.
 out = pd.DataFrame()
 for fusion in rois.iterrows():
     bam_filter = \
@@ -177,14 +209,16 @@ for fusion in rois.iterrows():
         (bam.pos < fusion[1].endcoord_x) & \
         (bam.pnext > fusion[1].startcoord_y) & \
         (bam.pnext < fusion[1].endcoord_y) & \
-        (bam.mapq >= 30)) | \
+        (bam.mapq >= 30) & \
+        (bam.mateq >= 30)) | \
     ((bam.rname == fusion[1].chromosome_y) & \
         (bam.rnext == fusion[1].chromosome_x) & \
         (bam.pos > fusion[1].startcoord_y) & \
         (bam.pos < fusion[1].endcoord_y) & \
         (bam.pnext > fusion[1].startcoord_x) & \
         (bam.pnext < fusion[1].endcoord_x) & \
-        (bam.mapq >= 30))
+        (bam.mapq >= 30) & \
+        (bam.mateq >= 30))
     
     bam_fusion = bam[bam_filter]
     bam_fusion.reset_index(drop = True, inplace = True)
@@ -216,51 +250,6 @@ supps_keep = (supps_actual == supps_exp)
 
 out_filtered = pd.concat([pairs[pairs_keep], supps[supps_keep]])
 out_filtered = out_filtered.fillna(value = 'NA').replace('', 'NA').sort_values('qname').reset_index(drop = True)
-
-# Filters results based on mate MAPQ
-#   Works in the same way as the SA filter, where all columns are searched for 'MQ' and then updated into
-#   a single series that is then split and filtered by mate MAPQ.
-mate_mapq = out_filtered[tag_col_names]
-mate_mapq_filter = mate_mapq[mate_mapq.apply(lambda col: col.str.startswith('MQ'), axis = 1)]
-mate_mapq = mate_mapq_filter.tag1
-for tag in tag_col_names[1:]:
-    mate_mapq.update((mate_mapq_filter[[tag]].squeeze()))
-
-mate_mapq = pd.DataFrame(mate_mapq.str.split(':').to_list(), columns = ['tag', 'i', 'mq'])
-mate_mapq.mq = pd.to_numeric(mate_mapq.mq)
-mate_filter = (mate_mapq.mq >= 30).reset_index(drop = True)
-
-out_filtered = out_filtered[mate_filter].reset_index(drop = True)
-
-# Filter complementary duplicates
-#   E.g. AB and BA reads. Relies on previous sorting. May not filter triplicate reads
-#   successfully if reads are identical but another read is in the middle, e.g. AB BC BA.
-#   Also filters rows that have identical rname/rnext/pos/pnext.
-# TODO: identify and test triplicate. Might just need multi-level sorting, e.g. sort
-#   by qname, then by rname/rnext or something. Could just use chr in tag3? e.g. SA tags?
-# TODO: Make it work for more than pairs - doesn't work for BCR-ABL reads, for example.
-#   Maybe hash them? e.g. make them into a string of chr1_100_chr2_200 and chr2_200_chr1_100
-#   and then compare each row to that instead?
-# TODO: I'm sure there's a better way to do this.
-if not(out_filtered.dropna().empty):
-    discard = [True]
-    prev_row = out_filtered.iloc[0]
-    out_filt_iter = out_filtered.itertuples()
-    next(out_filt_iter)
-    for row in out_filt_iter:
-        if (((row.rname == prev_row.rnext) &
-            (row.rnext == prev_row.rname) &
-            (row.pos == prev_row.pnext) &
-            (row.pnext == prev_row.pos)) |
-            ((row.rname == prev_row.rname) &
-            (row.rnext == prev_row.rnext) &
-            (row.pos == prev_row.pos) &
-            (row.pnext == prev_row.pnext))):
-                discard.append(False)
-        else:
-            discard.append(True)
-        prev_row = row
-    out_filtered = out_filtered[discard].reset_index(drop = True)
 
 # Write results to output
 out_filtered.to_csv(out_path, sep = '\t', line_terminator = '\n', index = False)

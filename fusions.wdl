@@ -3,41 +3,34 @@ version 1.0
 import "mutect2.wdl" as m2
 
 # WDL tasks and workflow for investigating CH fusions with Terra
-# Also runs mutect2 and deletion detection to search for DNMT3A mutations
-
-# TODO items
-# TODO: Complete CH Fusion workflow - complete
-# TODO: Add DNMT3A mutation detection/Mutect2 - complete
-# TODO: Code review/tidy - in progress
-# TODO: Tweak samtools flags; tweak samtools for performance; tweak filenames - in progress
-# TODO: New name for the workflow
+# Also runs mutect2 and deletion detection to search for mutations in subset of genes
 
 # Samtools task for fusions.py
 task samtools_fusions {
     input {
         File fusions_bed
-        File full_wgs
-        File full_wgs_idx
+        File full_cram
+        File full_cram_crai
         File ref_fa
         File ref_fa_fai
     }
     Int cores = 1
-    Float wgs_size = size([full_wgs], "GB")
-    Int runtime_size = 4 + round(wgs_size)
+    Float cram_size = size([full_cram], "GB")
+    Int runtime_size = 4 + round(cram_size)
     runtime {
         memory: "4GB"
         cpu: cores
         preemptible: 1
-        docker: "chrisamiller/genomic-analysis:0.2"
+        docker: "quay.io/biocontainers/samtools:1.2--0"
         disks: "local-disk ~{runtime_size} SSD"
         bootDiskSizeGb: runtime_size
     }
     command <<<
         set -o pipefail
         set -o errexit
-        ln -s ~{full_wgs} full.wgs
-        ln -s ~{full_wgs_idx} full.wgs.idx
-        samtools view -b -L ~{fusions_bed} -T ~{ref_fa} -t ~{ref_fa_fai} -o fusions.bam full.wgs
+        ln -s ~{full_cram} full.cram
+        ln -s ~{full_cram_crai} full.cram.crai
+        samtools view -b -L ~{fusions_bed} -M -T ~{ref_fa} -t ~{ref_fa_fai} -F 1036 -f 1 -q 30 -o fusions.bam full.cram
     >>>
     output {
         File fusions_bam = "fusions.bam"
@@ -47,34 +40,34 @@ task samtools_fusions {
 # Samtools task for mutect
 task samtools_mutect {
     input {
-        File dnmt3a_bed
-        File full_wgs
-        File full_wgs_idx
+        File subset_bed
+        File full_cram
+        File full_cram_crai
         File ref_fa
         File ref_fa_fai
     }
     Int cores = 1
-    Float bam_size = size([full_wgs], "GB")
+    Float bam_size = size([full_cram], "GB")
     Int runtime_size = 4 + round(bam_size)
     runtime {
         memory: "4GB"
         cpu: cores
         preemptible: 1
-        docker: "chrisamiller/genomic-analysis:0.2"
+        docker: "quay.io/biocontainers/samtools:1.2--0"
         disks: "local-disk ~{runtime_size} SSD"
         bootDiskSizeGb: runtime_size
     }
     command <<<
         set -o pipefail
         set -o errexit
-        ln -s ~{full_wgs} full.wgs
-        ln -s ~{full_wgs_idx} full.wgs.idx
-        samtools view -b -L ~{dnmt3a_bed} -T ~{ref_fa} -t ~{ref_fa_fai} -o dnmt3a.bam full.wgs
-        samtools index -b dnmt3a.bam
+        ln -s ~{full_cram} full.cram
+        ln -s ~{full_cram_crai} full.cram.crai
+        samtools view -b -L ~{subset_bed} -M -T ~{ref_fa} -t ~{ref_fa_fai} -F 1036 -f 1 -o subset.bam full.cram
+        samtools index -b subset.bam
     >>>
     output {
-        File dnmt3a_bam = "dnmt3a.bam"
-        File dnmt3a_bai = "dnmt3a.bam.bai"
+        File subset_bam = "subset.bam"
+        File subset_bai = "subset.bam.bai"
     }
 }
 
@@ -113,12 +106,12 @@ task fusions {
 # CNV - Indexcov
 task indexcov {
     input {
-        File full_wgs_idx
+        File full_cram_crai
         File ref_fa_fai
     }
     Int cores = 1
-    Float idx_size = size([full_wgs_idx], "GB")
-    Int runtime_size = 4 + round(idx_size)
+    Float crai_size = size([full_cram_crai], "GB")
+    Int runtime_size = 4 + round(crai_size)
     runtime {
         memory: "4GB"
         cpu: cores
@@ -128,7 +121,7 @@ task indexcov {
         bootDiskSizeGb: runtime_size
     }
     command <<<
-        goleft indexcov --extranormalize -d indexcov_out --fai ~{ref_fa_fai} ~{full_wgs_idx}
+        goleft indexcov --extranormalize -d indexcov_out --fai ~{ref_fa_fai} ~{full_cram_crai}
         tar -cvf indexcov.tar indexcov_out/
         gzip indexcov.tar
     >>>
@@ -142,12 +135,12 @@ task mosdepth {
     input {
         File ref_fa
         File ref_fa_fai
-        File full_wgs
-        File full_wgs_idx
-        File dnmt3a_mosdepth
+        File full_cram
+        File full_cram_crai
+        File subset_mosdepth
     }
     Int cores = 1
-    Float bam_size = size([full_wgs], "GB")
+    Float bam_size = size([full_cram], "GB")
     Int runtime_size = 4 + round(bam_size)
     runtime {
         memory: "8GB"
@@ -158,12 +151,12 @@ task mosdepth {
         bootDiskSizeGb: runtime_size
     }
     command <<<
-        ln -s ~{full_wgs} full.cram
-        ln -s ~{full_wgs_idx} full.cram.crai
+        ln -s ~{full_cram} full.cram
+        ln -s ~{full_cram_crai} full.cram.crai
         ln -s ~{ref_fa} ref.fa
         ln -s ~{ref_fa_fai} ref.fa.fai
         mkdir mosdepth
-        mosdepth -b ~{dnmt3a_mosdepth} -n -f ref.fa mosdepth/cnv full.cram
+        mosdepth -b ~{subset_mosdepth} -n -f ref.fa mosdepth/cnv full.cram
         tar -cvf mosdepth.tar mosdepth/
         gzip mosdepth.tar
     >>>
@@ -172,16 +165,16 @@ task mosdepth {
     }
 }
 
-# Workflow to call samtools_fusions and fusions
-workflow runfusions {
+# Workflow to call samtools, fusions, mutations, and deletions
+workflow fusions_mutations {
     input {
         File wf_fusions_bed
-        File wf_full_wgs
-        File wf_full_wgs_idx
+        File wf_full_cram
+        File wf_full_cram_crai
         File wf_fusions_py
         File wf_ROIs
-        File wf_dnmt3a_bed
-        File wf_dnmt3a_mosdepth
+        File wf_subset_bed
+        File wf_subset_mosdepth
         File wf_gene_ref_bed
         File wf_ref_fa
         File wf_ref_fa_fai
@@ -190,26 +183,26 @@ workflow runfusions {
         Int Mutect2_scatter_count
         String Mutect2_gatk_docker
         File Mutect2_gatk_override
-        File wf_dnmt3a_mosdepth
+        File wf_subset_mosdepth
     }
     call indexcov {
         input:
-        full_wgs_idx=wf_full_wgs_idx,
+        full_cram_crai=wf_full_cram_crai,
         ref_fa_fai=wf_ref_fa_fai
     }
     call mosdepth {
         input:
         ref_fa=wf_ref_fa,
         ref_fa_fai=wf_ref_fa_fai,
-        full_wgs=wf_full_wgs,
-        full_wgs_idx=wf_full_wgs_idx,
-        dnmt3a_mosdepth=wf_dnmt3a_mosdepth
+        full_cram=wf_full_cram,
+        full_cram_crai=wf_full_cram_crai,
+        subset_mosdepth=wf_subset_mosdepth
     }
     call samtools_fusions {
         input:
         fusions_bed=wf_fusions_bed,
-        full_wgs=wf_full_wgs,
-        full_wgs_idx=wf_full_wgs_idx,
+        full_cram=wf_full_cram,
+        full_cram_crai=wf_full_cram_crai,
         ref_fa=wf_ref_fa,
         ref_fa_fai=wf_ref_fa_fai
     }
@@ -222,9 +215,9 @@ workflow runfusions {
     }
     call samtools_mutect {
         input:
-        dnmt3a_bed=wf_dnmt3a_bed,
-        full_wgs=wf_full_wgs,
-        full_wgs_idx=wf_full_wgs_idx,
+        subset_bed=wf_subset_bed,
+        full_cram=wf_full_cram,
+        full_cram_crai=wf_full_cram_crai,
         ref_fa=wf_ref_fa,
         ref_fa_fai=wf_ref_fa_fai
     }
@@ -234,8 +227,8 @@ workflow runfusions {
         ref_fasta=wf_ref_fa,
         ref_fai=wf_ref_fa_fai,
         ref_dict=wf_ref_dict,
-        tumor_reads=samtools_mutect.dnmt3a_bam,
-        tumor_reads_index=samtools_mutect.dnmt3a_bai,
+        tumor_reads=samtools_mutect.subset_bam,
+        tumor_reads_index=samtools_mutect.subset_bai,
         scatter_count=Mutect2_scatter_count,
         gatk_docker=Mutect2_gatk_docker,
         gatk_override=Mutect2_gatk_override
@@ -243,8 +236,8 @@ workflow runfusions {
     output {
         File fusions_bam = samtools_fusions.fusions_bam
         File fusions_out = fusions.fusions_out
-        File dnmt3a_bam = samtools_mutect.dnmt3a_bam
-        File dnmt3a_bai = samtools_mutect.dnmt3a_bai
+        File subset_bam = samtools_mutect.subset_bam
+        File subset_bai = samtools_mutect.subset_bai
         File filtered_vcf = Mutect2.filtered_vcf
         File filtered_vcf_idx = Mutect2.filtered_vcf_idx
         File filtering_stats = Mutect2.filtering_stats
