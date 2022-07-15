@@ -74,7 +74,6 @@ task samtools_mutect {
 # Fusions.py task
 task fusions {
     input {
-        File fusions_py
         File fusions_bam
         File ROIs
         File gene_ref_bed
@@ -86,13 +85,12 @@ task fusions {
         memory: "4GB"
         cpu: cores
         preemptible: 1
-        docker: "chrisamiller/genomic-analysis:0.2"
+        docker: "jonathanztangwustl/docker_fusions:0.1.2"
         disks: "local-disk ~{runtime_size} SSD"
         bootDiskSizeGb: runtime_size
     }
     command <<<
-        python \
-        ~{fusions_py} \
+        fusions.py \
         ~{fusions_bam} \
         ~{ROIs} \
         ~{gene_ref_bed} \
@@ -171,7 +169,6 @@ workflow fusions_mutations {
         File wf_fusions_bed
         File wf_full_cram
         File wf_full_cram_crai
-        File wf_fusions_py
         File wf_ROIs
         File wf_subset_bed
         File wf_subset_mosdepth
@@ -208,7 +205,6 @@ workflow fusions_mutations {
     }
     call fusions {
         input:
-        fusions_py=wf_fusions_py,
         fusions_bam=samtools_fusions.fusions_bam,
         ROIs=wf_ROIs,
         gene_ref_bed=wf_gene_ref_bed

@@ -2,7 +2,6 @@
   "fusions_mutations.wf_fusions_bed": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/for_git/data/regions.bed",
   "fusions_mutations.wf_full_cram": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/testing/tumor.cram",
   "fusions_mutations.wf_full_cram_crai": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/testing/tumor.cram.crai",
-  "fusions_mutations.wf_fusions_py": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/for_git/fusions_mutect/fusions.py",
   "fusions_mutations.wf_ROIs": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/for_git/data/ROIs.txt",
   "fusions_mutations.wf_subset_bed": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/for_git/data/subset_exons.bed",
   "fusions_mutations.wf_gene_ref_bed": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/for_git/data/gene_reference.bed",
