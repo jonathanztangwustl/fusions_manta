@@ -10,7 +10,7 @@
   "fusions_mutations.wf_ref_dict": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/mutect2/references/all_sequences.dict",
   "fusions_mutations.Mutect2_intervals": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/for_git/data/subset_exons.interval_list",
   "fusions_mutations.Mutect2_scatter_count": "10",
-  "fusions_mutations.Mutect2_gatk_docker": "broadinstitute/gatk",
+  "fusions_mutations.Mutect2_gatk_docker": "broadinstitute/gatk:4.2.6.1",
   "fusions_mutations.Mutect2_gatk_override": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/mutect2/gatk4261local.jar",
   "fusions_mutations.wf_subset_mosdepth": "/storage1/fs1/timley/Active/aml_ppg/tmp/jonathanztang/breakpoint_reader/terra/for_git/data/subset_mosdepth.bed"
 }

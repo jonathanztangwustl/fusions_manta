@@ -30,10 +30,12 @@ task samtools_fusions {
         set -o errexit
         ln -s ~{full_cram} full.cram
         ln -s ~{full_cram_crai} full.cram.crai
-        samtools view -b -L ~{fusions_bed} -M -T ~{ref_fa} -t ~{ref_fa_fai} -F 1036 -f 1 -q 30 -o fusions.bam full.cram
+        samtools view -b -L ~{fusions_bed} -M -T ~{ref_fa} -t ~{ref_fa_fai} -F 1024 -f 1 -q 30 -o fusions.bam full.cram
+        samtools index fusions.bam
     >>>
     output {
         File fusions_bam = "fusions.bam"
+        File fusions_bam_bai = "fusions.bam.bai"
     }
 }
 
@@ -62,7 +64,7 @@ task samtools_mutect {
         set -o errexit
         ln -s ~{full_cram} full.cram
         ln -s ~{full_cram_crai} full.cram.crai
-        samtools view -b -L ~{subset_bed} -M -T ~{ref_fa} -t ~{ref_fa_fai} -F 1036 -f 1 -o subset.bam full.cram
+        samtools view -b -L ~{subset_bed} -M -T ~{ref_fa} -t ~{ref_fa_fai} -F 1024 -f 1 -o subset.bam full.cram
         samtools index -b subset.bam
     >>>
     output {
@@ -75,6 +77,7 @@ task samtools_mutect {
 task fusions {
     input {
         File fusions_bam
+        File fusions_bam_bai
         File ROIs
         File gene_ref_bed
     }
@@ -85,13 +88,15 @@ task fusions {
         memory: "4GB"
         cpu: cores
         preemptible: 1
-        docker: "jonathanztangwustl/docker_fusions:0.1.2"
+        docker: "jonathanztangwustl/docker_fusions:0.1.3"
         disks: "local-disk ~{runtime_size} SSD"
         bootDiskSizeGb: runtime_size
     }
     command <<<
+        ln -s ~{fusions_bam} fusions.bam
+        ln -s ~{fusions_bam_bai} fusions.bam.bai
         fusions.py \
-        ~{fusions_bam} \
+        fusions.bam \
         ~{ROIs} \
         ~{gene_ref_bed} \
         fusions_out.txt
@@ -206,6 +211,7 @@ workflow fusions_mutations {
     call fusions {
         input:
         fusions_bam=samtools_fusions.fusions_bam,
+        fusions_bam_bai=samtools_fusions.fusions_bam_bai,
         ROIs=wf_ROIs,
         gene_ref_bed=wf_gene_ref_bed
     }
@@ -231,6 +237,7 @@ workflow fusions_mutations {
     }
     output {
         File fusions_bam = samtools_fusions.fusions_bam
+        File fusions_bam_bai = samtools_fusions.fusions_bam_bai
         File fusions_out = fusions.fusions_out
         File subset_bam = samtools_mutect.subset_bam
         File subset_bai = samtools_mutect.subset_bai
