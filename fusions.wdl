@@ -30,7 +30,7 @@ task samtools_fusions {
         set -o errexit
         ln -s ~{full_cram} full.cram
         ln -s ~{full_cram_crai} full.cram.crai
-        samtools view -b -L ~{fusions_bed} -M -T ~{ref_fa} -t ~{ref_fa_fai} -F 1024 -f 1 -q 30 -o fusions.bam full.cram
+        samtools view -b -L ~{fusions_bed} -M -T ~{ref_fa} -t ~{ref_fa_fai} -F 1028 -f 1 -q 30 -o fusions.bam full.cram
         samtools index fusions.bam
     >>>
     output {
@@ -64,7 +64,7 @@ task samtools_mutect {
         set -o errexit
         ln -s ~{full_cram} full.cram
         ln -s ~{full_cram_crai} full.cram.crai
-        samtools view -b -L ~{subset_bed} -M -T ~{ref_fa} -t ~{ref_fa_fai} -F 1024 -f 1 -o subset.bam full.cram
+        samtools view -b -L ~{subset_bed} -M -T ~{ref_fa} -t ~{ref_fa_fai} -F 1028 -f 1 -o subset.bam full.cram
         samtools index -b subset.bam
     >>>
     output {
