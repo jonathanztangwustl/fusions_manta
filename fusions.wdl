@@ -61,7 +61,7 @@ task fusions {
         memory: "4GB"
         cpu: cores
         preemptible: 1
-        docker: "jonathanztangwustl/docker_fusions:0.1.4"
+        docker: "jonathanztangwustl/docker_fusions:0.1.5"
         disks: "local-disk ~{runtime_size} SSD"
         bootDiskSizeGb: runtime_size
     }
