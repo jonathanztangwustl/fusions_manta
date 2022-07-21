@@ -17,7 +17,7 @@ task samtools {
     }
     Int cores = 1
     Float cram_size = size([full_cram, full_cram_crai, ref_fa, ref_fa_fai], "GB")
-    Int runtime_size = 20 + round(cram_size)
+    Int runtime_size = 15 + round(cram_size)
     runtime {
         memory: "4GB"
         cpu: cores
@@ -54,9 +54,9 @@ task fusions {
         File ROIs
         File gene_ref_bed
     }
-    Int cores = 4
+    Int cores = 1
     Float bam_size = size([fusions_bam, fusions_bam_bai], "GB")
-    Int runtime_size = 20 + round(bam_size)
+    Int runtime_size = 10 + round(bam_size)
     runtime {
         memory: "4GB"
         cpu: cores
@@ -87,7 +87,7 @@ task indexcov {
     }
     Int cores = 1
     Float crai_size = size([full_cram_crai, ref_fa_fai], "GB")
-    Int runtime_size = 20 + round(crai_size)
+    Int runtime_size = 15 + round(crai_size)
     runtime {
         memory: "4GB"
         cpu: cores
@@ -117,9 +117,9 @@ task mosdepth {
     }
     Int cores = 1
     Float bam_size = size([full_cram, full_cram_crai, ref_fa, ref_fa_fai], "GB")
-    Int runtime_size = 20 + round(bam_size)
+    Int runtime_size = 15 + round(bam_size)
     runtime {
-        memory: "8GB"
+        memory: "4GB"
         cpu: cores
         preemptible: 1
         docker: "quay.io/biocontainers/mosdepth:0.3.3--h37c5b7d_2"
