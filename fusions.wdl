@@ -16,8 +16,8 @@ task samtools {
         File ref_fa_fai
     }
     Int cores = 1
-    Float cram_size = size([full_cram], "GB")
-    Int runtime_size = 4 + round(cram_size)
+    Float cram_size = size([full_cram, full_cram_crai, ref_fa, ref_fa_fai], "GB")
+    Int runtime_size = 20 + round(cram_size)
     runtime {
         memory: "4GB"
         cpu: cores
@@ -55,8 +55,8 @@ task fusions {
         File gene_ref_bed
     }
     Int cores = 4
-    Float bam_size = size([fusions_bam], "GB")
-    Int runtime_size = 4 + round(bam_size)
+    Float bam_size = size([fusions_bam, fusions_bam_bai], "GB")
+    Int runtime_size = 20 + round(bam_size)
     runtime {
         memory: "4GB"
         cpu: cores
@@ -86,8 +86,8 @@ task indexcov {
         File ref_fa_fai
     }
     Int cores = 1
-    Float crai_size = size([full_cram_crai], "GB")
-    Int runtime_size = 4 + round(crai_size)
+    Float crai_size = size([full_cram_crai, ref_fa_fai], "GB")
+    Int runtime_size = 20 + round(crai_size)
     runtime {
         memory: "4GB"
         cpu: cores
@@ -116,8 +116,8 @@ task mosdepth {
         File subset_mosdepth
     }
     Int cores = 1
-    Float bam_size = size([full_cram], "GB")
-    Int runtime_size = 4 + round(bam_size)
+    Float bam_size = size([full_cram, full_cram_crai, ref_fa, ref_fa_fai], "GB")
+    Int runtime_size = 20 + round(bam_size)
     runtime {
         memory: "8GB"
         cpu: cores
