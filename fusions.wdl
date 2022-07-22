@@ -5,23 +5,24 @@ import "mutect2.wdl" as m2
 # WDL tasks and workflow for investigating CH fusions with Terra
 # Also runs mutect2 and deletion detection to search for mutations in subset of genes
 
-# Samtools task for fusions.py
-task samtools_fusions {
+# Samtools task
+task samtools {
     input {
         File fusions_bed
+        File subset_bed
         File full_cram
         File full_cram_crai
         File ref_fa
         File ref_fa_fai
     }
     Int cores = 1
-    Float cram_size = size([full_cram], "GB")
-    Int runtime_size = 4 + round(cram_size)
+    Float cram_size = size([full_cram, full_cram_crai, ref_fa, ref_fa_fai], "GB")
+    Int runtime_size = 15 + round(cram_size)
     runtime {
         memory: "4GB"
         cpu: cores
         preemptible: 1
-        docker: "quay.io/biocontainers/samtools:1.2--0"
+        docker: "quay.io/biocontainers/samtools:1.15.1--h1170115_0"
         disks: "local-disk ~{runtime_size} SSD"
         bootDiskSizeGb: runtime_size
     }
@@ -32,44 +33,16 @@ task samtools_fusions {
         ln -s ~{full_cram_crai} full.cram.crai
         samtools view -b -L ~{fusions_bed} -M -T ~{ref_fa} -t ~{ref_fa_fai} -F 1028 -f 1 -q 30 -o fusions.bam full.cram
         samtools index fusions.bam
+        samtools view -b -L ~{subset_bed} -M -T ~{ref_fa} -t ~{ref_fa_fai} -F 1028 -f 1 -o subset.bam full.cram
+        samtools index -b subset.bam
+        samtools flagstat full.cram > flagstat
     >>>
     output {
         File fusions_bam = "fusions.bam"
         File fusions_bam_bai = "fusions.bam.bai"
-    }
-}
-
-# Samtools task for mutect
-task samtools_mutect {
-    input {
-        File subset_bed
-        File full_cram
-        File full_cram_crai
-        File ref_fa
-        File ref_fa_fai
-    }
-    Int cores = 1
-    Float bam_size = size([full_cram], "GB")
-    Int runtime_size = 4 + round(bam_size)
-    runtime {
-        memory: "4GB"
-        cpu: cores
-        preemptible: 1
-        docker: "quay.io/biocontainers/samtools:1.2--0"
-        disks: "local-disk ~{runtime_size} SSD"
-        bootDiskSizeGb: runtime_size
-    }
-    command <<<
-        set -o pipefail
-        set -o errexit
-        ln -s ~{full_cram} full.cram
-        ln -s ~{full_cram_crai} full.cram.crai
-        samtools view -b -L ~{subset_bed} -M -T ~{ref_fa} -t ~{ref_fa_fai} -F 1028 -f 1 -o subset.bam full.cram
-        samtools index -b subset.bam
-    >>>
-    output {
         File subset_bam = "subset.bam"
         File subset_bai = "subset.bam.bai"
+        File flagstat = "flagstat"
     }
 }
 
@@ -81,14 +54,14 @@ task fusions {
         File ROIs
         File gene_ref_bed
     }
-    Int cores = 4
-    Float bam_size = size([fusions_bam], "GB")
-    Int runtime_size = 4 + round(bam_size)
+    Int cores = 1
+    Float bam_size = size([fusions_bam, fusions_bam_bai], "GB")
+    Int runtime_size = 10 + round(bam_size)
     runtime {
         memory: "4GB"
         cpu: cores
         preemptible: 1
-        docker: "jonathanztangwustl/docker_fusions:0.1.3"
+        docker: "jonathanztangwustl/docker_fusions:0.1.5"
         disks: "local-disk ~{runtime_size} SSD"
         bootDiskSizeGb: runtime_size
     }
@@ -113,8 +86,8 @@ task indexcov {
         File ref_fa_fai
     }
     Int cores = 1
-    Float crai_size = size([full_cram_crai], "GB")
-    Int runtime_size = 4 + round(crai_size)
+    Float crai_size = size([full_cram_crai, ref_fa_fai], "GB")
+    Int runtime_size = 15 + round(crai_size)
     runtime {
         memory: "4GB"
         cpu: cores
@@ -143,13 +116,13 @@ task mosdepth {
         File subset_mosdepth
     }
     Int cores = 1
-    Float bam_size = size([full_cram], "GB")
-    Int runtime_size = 4 + round(bam_size)
+    Float bam_size = size([full_cram, full_cram_crai, ref_fa, ref_fa_fai], "GB")
+    Int runtime_size = 15 + round(bam_size)
     runtime {
-        memory: "8GB"
+        memory: "4GB"
         cpu: cores
         preemptible: 1
-        docker: "quay.io/biocontainers/mosdepth:0.2.5--hb763d49_0"
+        docker: "quay.io/biocontainers/mosdepth:0.3.3--h37c5b7d_2"
         disks: "local-disk ~{runtime_size} SSD"
         bootDiskSizeGb: runtime_size
     }
@@ -185,6 +158,7 @@ workflow fusions_mutations {
         Int Mutect2_scatter_count
         String Mutect2_gatk_docker
         File Mutect2_gatk_override
+        Boolean Mutect2_run_funcotator
         File wf_subset_mosdepth
     }
     call indexcov {
@@ -200,9 +174,10 @@ workflow fusions_mutations {
         full_cram_crai=wf_full_cram_crai,
         subset_mosdepth=wf_subset_mosdepth
     }
-    call samtools_fusions {
+    call samtools {
         input:
         fusions_bed=wf_fusions_bed,
+        subset_bed=wf_subset_bed,
         full_cram=wf_full_cram,
         full_cram_crai=wf_full_cram_crai,
         ref_fa=wf_ref_fa,
@@ -210,18 +185,10 @@ workflow fusions_mutations {
     }
     call fusions {
         input:
-        fusions_bam=samtools_fusions.fusions_bam,
-        fusions_bam_bai=samtools_fusions.fusions_bam_bai,
+        fusions_bam=samtools.fusions_bam,
+        fusions_bam_bai=samtools.fusions_bam_bai,
         ROIs=wf_ROIs,
         gene_ref_bed=wf_gene_ref_bed
-    }
-    call samtools_mutect {
-        input:
-        subset_bed=wf_subset_bed,
-        full_cram=wf_full_cram,
-        full_cram_crai=wf_full_cram_crai,
-        ref_fa=wf_ref_fa,
-        ref_fa_fai=wf_ref_fa_fai
     }
     call m2.Mutect2{
         input:
@@ -229,29 +196,22 @@ workflow fusions_mutations {
         ref_fasta=wf_ref_fa,
         ref_fai=wf_ref_fa_fai,
         ref_dict=wf_ref_dict,
-        tumor_reads=samtools_mutect.subset_bam,
-        tumor_reads_index=samtools_mutect.subset_bai,
+        tumor_reads=samtools.subset_bam,
+        tumor_reads_index=samtools.subset_bai,
         scatter_count=Mutect2_scatter_count,
         gatk_docker=Mutect2_gatk_docker,
-        gatk_override=Mutect2_gatk_override
+        gatk_override=Mutect2_gatk_override,
+        run_funcotator=Mutect2_run_funcotator
     }
     output {
-        File fusions_bam = samtools_fusions.fusions_bam
-        File fusions_bam_bai = samtools_fusions.fusions_bam_bai
+        File fusions_bam = samtools.fusions_bam
+        File fusions_bam_bai = samtools.fusions_bam_bai
+        File flagstat = samtools.flagstat
         File fusions_out = fusions.fusions_out
-        File subset_bam = samtools_mutect.subset_bam
-        File subset_bai = samtools_mutect.subset_bai
+        File subset_bam = samtools.subset_bam
+        File subset_bai = samtools.subset_bai
         File filtered_vcf = Mutect2.filtered_vcf
         File filtered_vcf_idx = Mutect2.filtered_vcf_idx
-        File filtering_stats = Mutect2.filtering_stats
-        File mutect_stats = Mutect2.mutect_stats
-        File? contamination_table = Mutect2.contamination_table
-        File? funcotated_file = Mutect2.funcotated_file
-        File? funcotated_file_index = Mutect2.funcotated_file_index
-        File? bamout = Mutect2.bamout
-        File? bamout_index = Mutect2.bamout_index
-        File? maf_segments = Mutect2.maf_segments
-        File? read_orientation_model_params = Mutect2.read_orientation_model_params
         File indexcov_out = indexcov.indexcov_out
         File mosdepth_out = mosdepth.mosdepth_out
     }

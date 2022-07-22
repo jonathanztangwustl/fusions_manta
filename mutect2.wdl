@@ -138,9 +138,9 @@ workflow Mutect2 {
 
       Int? preemptible
       Int? max_retries
-      Int small_task_cpu = 2
+      Int small_task_cpu = 1
       Int small_task_mem = 4
-      Int small_task_disk = 100
+      Int small_task_disk = 50
       Int boot_disk_size = 12
       Int learn_read_orientation_mem = 8000
       Int filter_alignment_artifacts_mem = 9000
