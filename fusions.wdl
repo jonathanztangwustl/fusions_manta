@@ -97,8 +97,9 @@ task indexcov {
         bootDiskSizeGb: runtime_size
     }
     command <<<
-        goleft indexcov --extranormalize -d indexcov_out --fai ~{ref_fa_fai} ~{full_cram_crai}
-        tar -cvf indexcov.tar indexcov_out/
+        goleft indexcov --extranormalize -d indexcov --fai ~{ref_fa_fai} ~{full_cram_crai}
+        rm indexcov/*.html indexcov/*.png
+        tar -cvf indexcov.tar indexcov/
         gzip indexcov.tar
     >>>
     output {
