@@ -41,7 +41,7 @@ task samtools {
         File fusions_bam = "fusions.bam"
         File fusions_bam_bai = "fusions.bam.bai"
         File subset_bam = "subset.bam"
-        File subset_bai = "subset.bam.bai"
+        File subset_bam_bai = "subset.bam.bai"
         File flagstat = "flagstat"
     }
 }
@@ -197,7 +197,7 @@ workflow fusions_mutations {
         ref_fai=wf_ref_fa_fai,
         ref_dict=wf_ref_dict,
         tumor_reads=samtools.subset_bam,
-        tumor_reads_index=samtools.subset_bai,
+        tumor_reads_index=samtools.subset_bam_bai,
         scatter_count=Mutect2_scatter_count,
         gatk_docker=Mutect2_gatk_docker,
         gatk_override=Mutect2_gatk_override,
@@ -209,7 +209,7 @@ workflow fusions_mutations {
         File flagstat = samtools.flagstat
         File fusions_out = fusions.fusions_out
         File subset_bam = samtools.subset_bam
-        File subset_bai = samtools.subset_bai
+        File subset_bam_bai = samtools.subset_bam_bai
         File filtered_vcf = Mutect2.filtered_vcf
         File filtered_vcf_idx = Mutect2.filtered_vcf_idx
         File indexcov_out = indexcov.indexcov_out
